@@ -22,6 +22,7 @@ db.knex.schema.hasTable('urls').then(function(exists) {
       link.string('code', 100);
       link.string('title', 255);
       link.integer('visits');
+      link.integer('user_id');
       link.timestamps();
     }).then(function (table) {
       console.log('Created Table', table);
@@ -41,9 +42,37 @@ db.knex.schema.hasTable('clicks').then(function(exists) {
   }
 });
 
-/************************************************************/
-// Add additional schema definitions below
-/************************************************************/
+db.knex.schema.hasTable('users').then(function(exists) {
+  if(!exists) {
+    db.knex.schema.createTable('users', function(user) {
+      user.integer('id').primary();
+      user.string('username', 50);
+      user.string('password', 100);
+      user.string('salt', 32);
+      user.timestamps();
+    });
+  }
+});
 
+db.knex.schema.hasTable('tokens').then(function(exists) {
+  if(!exists) {
+    db.knex.schema.createTable('tokens', function(token) {
+      token.integer('id').primary();
+      token.integer('user_id');
+      token.string('token', 32);
+      token.dateTime('expires');
+      token.timestamps();
+    });
+  }
+});
+
+db.knex.schema.hasTable('userLinkJoins').then(function(exists) {
+  if(!exists) {
+    db.knex.schema.createTable('userLinkJoins', function(userLinkJoin) {
+      userLinkJoin.integer('user_id');
+      userLinkJoin.integer('link_id');
+    });
+  }
+});
 
 module.exports = db;
