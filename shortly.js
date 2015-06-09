@@ -79,6 +79,8 @@ function(req,res) {
         if(passwordCorrect) {
           console.log('correct password');
           //TODO set up cookies
+          console.log(req.session);
+          req.session.cookie.token  = 'token';
           res.redirect('/');
         } else {
           console.log('incorrect password');
