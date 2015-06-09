@@ -30,6 +30,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false
 }));
+// app.use(authenticate);
+app.use(restrict);
 
 app.get('/login',
 function(req, res) {
@@ -55,6 +57,8 @@ function(req,res) {
       console.log('user not found');
       currentUser.salt(req.body.password, function() {
         currentUser.save().then(function() {
+          req.session.user = {};
+          req.session.save();
           res.redirect('/');
         });
       });
@@ -64,9 +68,6 @@ function(req,res) {
 
 app.post('/login',
 function(req,res) {
-//check if user exists
-  //yes, check password
-    //yes, redirect to index and send positive status code
 
   var currentUser = new User({
     username: req.body.username
@@ -79,26 +80,44 @@ function(req,res) {
         if(passwordCorrect) {
           console.log('correct password');
           //TODO set up cookies
-          console.log(req.session);
-          req.session.cookie.token  = 'token';
+          // req.session.cookie.token  = 'token';
+          req.session.user = {};
+          req.session.save();
           res.redirect('/');
         } else {
           console.log('incorrect password');
           res.redirect('/login');
+          // res.render('login');
         }
       });
     } else {
       console.log('user not found');
       res.redirect('/login');
+      // res.render('login');
     }
   });
 });
 
-app.use(restrict);
+function authenticate(req, res, next) {
+  console.log('authenticate');
+  // if(req.sessionStore) {
+    console.log('req.session: ', req.cookies['connect.sid']);
+    req.sessionStore.load(req.cookies['connect.sid'], function(err, session) {
+      if(err || !session) {
+        console.log('session not found');
+      } else {
+        console.log('sessions found: ', session);
+        req.session = session;
+        //touch
+      }
+      next();
+    });
+
+  // }
+}
 
 function restrict(req, res, next) {
-  console.log('restrict');
-  if (req.session.user) {
+  if (req.session.user || req.url === '/login' || req.url === '/signup') {
     next();
   } else {
     req.session.error = 'Access denied!';
