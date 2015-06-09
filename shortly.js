@@ -2,7 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -12,7 +13,6 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var Clicks = require('./app/collections/clicks');
 var Token = require('./app/models/token');
-
 
 var app = express();
 
@@ -24,10 +24,89 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+app.use(cookieParser());
+app.use(session({
+  secret: 'boo',
+  resave: false,
+  saveUninitialized: false
+}));
 
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
+
+app.get('/signup',
+function(req,res) {
+  res.render('signup');
+});
+
+app.post('/signup',
+function(req,res) {
+  var currentUser = new User({
+    username: req.body.username
+  });
+
+  currentUser.fetch().then(function(found) {
+    if (found) {
+      console.log('user found');
+      res.redirect('/signup');
+    } else {
+      console.log('user not found');
+      currentUser.salt(req.body.password, function() {
+        currentUser.save().then(function() {
+          res.redirect('/');
+        });
+      });
+    }
+  });
+});
+
+app.post('/login',
+function(req,res) {
+//check if user exists
+  //yes, check password
+    //yes, redirect to index and send positive status code
+
+  var currentUser = new User({
+    username: req.body.username
+  });
+
+  currentUser.fetch().then(function(found) {
+    if (found) {
+      console.log('user found');
+      currentUser.checkPassword(req.body.password, function(passwordCorrect) {
+        if(passwordCorrect) {
+          console.log('correct password');
+          //TODO set up cookies
+          res.redirect('/');
+        } else {
+          console.log('incorrect password');
+          res.redirect('/login');
+        }
+      });
+    } else {
+      console.log('user not found');
+      res.redirect('/login');
+    }
+  });
+});
+
+app.use(restrict);
+
+function restrict(req, res, next) {
+  console.log('restrict');
+  if (req.session.user) {
+    next();
+  } else {
+    req.session.error = 'Access denied!';
+    res.redirect('/login');
+  }
+}
 
 app.get('/',
 function(req, res) {
+  console.log('index');
   res.render('index');
 });
 
@@ -85,7 +164,7 @@ function(req, res) {
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
-// assume the route is a short code and try and handle it here.
+// assume the route is a short c=ode and try and handle it here.
 // If the short-code doesn't exist, send the user to '/'
 /************************************************************/
 

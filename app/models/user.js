@@ -16,11 +16,27 @@ var User = db.Model.extend({
   },
   initialize: function() {
     this.on('creating', function(model, attrs, options) {
-      //create salt
-      //append to password
-      //hash salt + password
-      //save that to the model as password
-      //MAYBE create token MAYBE
+    });
+  },
+  salt: function (password, callback) {
+    console.log('salt start');
+    var context = this;
+    bcrypt.genSalt(10, function(err, salt) {
+      context.set('salt',salt);
+      console.log('salting');
+      bcrypt.hash(password, salt, null, function(err,hash) {
+        console.log('hashing');
+        context.set('password', hash);
+        callback();
+      });
+    });
+  },
+  checkPassword: function(password, callback) {
+    console.log('checking password');
+
+    var context = this;
+    bcrypt.hash(password, context.get('salt'), null, function (err, hash) {
+      callback(hash === context.get('password'));
     });
   }
 });
